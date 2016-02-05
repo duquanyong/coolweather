@@ -11,7 +11,7 @@ import com.coolweather.app.model.Province;
 import com.coolweather.app.util.HttpUtil;
 import com.coolweather.app.util.Utility;
 import com.coolweather.app.util.HttpCallbackListener;
- 
+
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Intent;
@@ -28,7 +28,6 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-
 public class ChooseAreaActivity extends Activity {
 
 	public static final int LEVEL_PROVINCE = 0;
@@ -41,6 +40,10 @@ public class ChooseAreaActivity extends Activity {
 	private ArrayAdapter<String> adapter;
 	private CoolWeatherDB coolWeatherDB;
 	private List<String> dataList = new ArrayList<String>();
+	/**
+	 * 是否从WeatherActivity中跳转过来。
+	 */
+	private boolean isFromWeatherActivity;
 	/**
 	 * 省列表
 	 */
@@ -69,14 +72,19 @@ public class ChooseAreaActivity extends Activity {
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		SharedPreferences prefs = PreferenceManager.
-				getDefaultSharedPreferences(this);
-				if (prefs.getBoolean("city_selected", false)) {
-				Intent intent = new Intent(this, WeatherActivity.class);
-				startActivity(intent);
-				finish();
-				return;
-				}
+		isFromWeatherActivity = getIntent().getBooleanExtra(
+				"from_weather_activity", false);
+
+		SharedPreferences prefs = PreferenceManager
+				.getDefaultSharedPreferences(this);
+		// 已经选择了城市且不是从WeatherActivity跳转过来，才会直接跳转到WeatherActivity
+
+		if (prefs.getBoolean("city_selected", false) && !isFromWeatherActivity) {
+			Intent intent = new Intent(this, WeatherActivity.class);
+			startActivity(intent);
+			finish();
+			return;
+		}
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
 		setContentView(R.layout.choose_area);
 		listView = (ListView) findViewById(R.id.list_view);
@@ -96,14 +104,14 @@ public class ChooseAreaActivity extends Activity {
 				} else if (currentLevel == LEVEL_CITY) {
 					selectedCity = cityList.get(index);
 					queryCounties();
-				}else if (currentLevel == LEVEL_COUNTY) {
+				} else if (currentLevel == LEVEL_COUNTY) {
 					String countyCode = countyList.get(index).getCountyCode();
 					Intent intent = new Intent(ChooseAreaActivity.this,
-					WeatherActivity.class);
+							WeatherActivity.class);
 					intent.putExtra("county_code", countyCode);
 					startActivity(intent);
 					finish();
-					}
+				}
 			}
 		});
 		queryProvinces(); // 加载省级数据
@@ -250,6 +258,7 @@ public class ChooseAreaActivity extends Activity {
 	/**
 	 * 捕获Back按键，根据当前的级别来判断，此时应该返回市列表、省列表、还是直接退出。 第一行代码——Android 506
 	 */
+ 
 	@Override
 	public void onBackPressed() {
 		if (currentLevel == LEVEL_COUNTY) {
@@ -257,6 +266,10 @@ public class ChooseAreaActivity extends Activity {
 		} else if (currentLevel == LEVEL_CITY) {
 			queryProvinces();
 		} else {
+			if (isFromWeatherActivity) {
+				Intent intent = new Intent(this, WeatherActivity.class);
+				startActivity(intent);
+			}
 			finish();
 		}
 	}
